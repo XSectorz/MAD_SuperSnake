@@ -27,6 +27,9 @@
 #include "usart.h"
 #include "gpio.h"
 #include "stdbool.h"
+#include "stdio.h"
+#include "stdlib.h"
+#include "time.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -58,9 +61,21 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 uint32_t VR[2];
-uint8_t p1X[5] = {10,11,12,13,14};
-uint8_t p1Y[5] = {10,10,10,10,10};
+
+/*Game Control*/
+uint8_t spawnPosX[10] = {10,11,12,13,13,13,14,15,16,17};
+uint8_t spawnPosY[10] = {10,10,10,10,11,12,12,12,12,12};
+bool isGameStart = false;
+uint32_t playerControlDelay = 20;//In millis
+uint32_t playerMoveDelay = 150;
+uint32_t currentMoveDelay = 0;
+
+/*Player Control*/
+uint8_t p1X[10] = {10,11,12,13,13,13,14,15,16,17};
+uint8_t p1Y[10] = {10,10,10,10,11,12,12,12,12,12};
+uint8_t p1Length = 10;
 uint8_t p1PrevMoveType = 1; //0 = IDLE 1 = LEFT 2 = RIGHT 3 = UP 4 = DOWN
+uint32_t p1MoveDelay = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,50 +87,102 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void resetP1Position() {
+	p1PrevMoveType = 1;
+	for(int i = 0 ; i < p1Length ; i++) {
+		p1X[i] = spawnPosX[i];
+	}
+
+	for(int i = 0 ; i < p1Length ; i++) {
+		p1Y[i] = spawnPosY[i];
+	}
+
+	for(int i = 0 ; i < p1Length ; i++) {
+		ILI9341_Draw_Rectangle(10*p1X[i], 10*p1Y[i], 10, 10, 0);
+	}
+}
+
+void resetMap() {
+	isGameStart = false;
+	ILI9341_Fill_Screen(WHITE);
+	ILI9341_Set_Rotation(SCREEN_HORIZONTAL_1);
+	for(int i = 0 ; i < 24 ; i++) {
+		  if(i==0 || i == 23) {
+			  for(int j = 0 ; j < 32 ; j++) {
+				  ILI9341_Draw_Rectangle(10*j, 10*i, 10, 10, 30000);
+			  }
+		  } else {
+			  ILI9341_Draw_Rectangle(0, 10*i, 10, 10, 30000);
+			  ILI9341_Draw_Rectangle(310, 10*i, 10, 10, 30000);
+		  }
+	  }
+	resetP1Position();
+	isGameStart = true;
+}
+
+bool checkIsP1BiteSelf() {
+	for(int i = 1 ; i < p1Length ; i++) {
+		if(p1X[i] == p1X[0] && p1Y[i] == p1Y[0]) {
+			resetMap();
+			return true;
+		}
+	}
+	return false;
+}
+
 void moveP1AutoMove(uint8_t moveType) {
-	uint8_t tempp1X[5];
-	uint8_t tempp1Y[5];
+	uint8_t tempp1X[p1Length];
+	uint8_t tempp1Y[p1Length];
 	bool isMove = false;
 	if(moveType == 1) {
-		if(p1X[0] > 0) {
+		if(p1X[0] > 1) {
 			tempp1X[0] = p1X[0]-1;
 			isMove = true;
 		} else {
-			tempp1X[0] = p1X[0];
+			//tempp1X[0] = p1X[0];
+			resetMap();
+			return;
 		}
 		tempp1Y[0] = p1Y[0];
 	} else if(moveType == 2) {
-		if(p1X[0] < 32) {
+		if(p1X[0] < 30) {
 			tempp1X[0] = p1X[0]+1;
 			isMove = true;
 		} else {
-			tempp1X[0] = p1X[0];
+			//tempp1X[0] = p1X[0];
+			resetMap();
+			return;
 		}
 		tempp1Y[0] = p1Y[0];
 	} else if(moveType == 3) {
-		if(p1Y[0] > 0) {
+		if(p1Y[0] > 1) {
 			tempp1Y[0] = p1Y[0]-1;
 			isMove = true;
 		} else {
-			tempp1Y[0] = p1Y[0];
+			//tempp1Y[0] = p1Y[0];
+			resetMap();
+			return;
 		}
 		tempp1X[0] = p1X[0];
 	} else if(moveType == 4) {
-		if(p1Y[0] < 24) {
+		if(p1Y[0] < 22) {
 			tempp1Y[0] = p1Y[0]+1;
 			isMove = true;
 		} else {
-			tempp1Y[0] = p1Y[0];
+			//tempp1Y[0] = p1Y[0];
+			resetMap();
+			return;
 		}
 		tempp1X[0] = p1X[0];
 	}
-	if(isMove) {
-		ILI9341_Draw_Rectangle(10*p1X[4], 10*p1Y[4], 10, 10, 65535); //Clear last index
-		for(int i = 0 ; i < 4 ; i++) {
+	if(isMove && !checkIsP1BiteSelf()) {
+		ILI9341_Draw_Rectangle(10*p1X[p1Length-1], 10*p1Y[p1Length-1], 10, 10, 65535); //Clear last index
+		for(int i = 0 ; i < p1Length-1 ; i++) {
 			tempp1X[i+1] = p1X[i];
 			tempp1Y[i+1] = p1Y[i];
 		}
-		for(int i = 0 ; i < 5 ; i++) {
+		for(int i = 0 ; i < p1Length ; i++) {
 			p1X[i] = tempp1X[i];
 		    p1Y[i] = tempp1Y[i];
 		}
@@ -167,12 +234,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
   ILI9341_Init();//initial driver setup to drive ili9341
   HAL_ADC_Start_DMA(&hadc1, VR, 2);
-  ILI9341_Fill_Screen(WHITE);
-  ILI9341_Set_Rotation(SCREEN_HORIZONTAL_1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  resetMap();
+
   while (1)
   {
 
@@ -213,53 +281,60 @@ int main(void)
 			  }
 		  }
 	  }*/
+	  if(isGameStart) {
+		  //Movement Logic
+		  if(HAL_GetTick() - p1MoveDelay >= 0) {
+			  if(VR[0] <= 15) { //Left Movement
+				  char type[] = "LEFT MOVEMENT";
+				  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				  	  HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
+				  if(p1PrevMoveType != 2) {
+					  p1PrevMoveType = 1;
+				  }
+			  } else if(VR[0] >= 3055) { //Right Movement
+				  char type[] = "RIGHT MOVEMENT";
+				  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
+				 	if(p1PrevMoveType != 1) {
+						 p1PrevMoveType = 2;
+				 	}
+			  } else if(VR[1] <= 15) { //Up Movement
+				  char type[] = "UP MOVEMENT";
+				  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
+				 	if(p1PrevMoveType != 4) {
+						 p1PrevMoveType = 3;
+				 	}
+			  } else if(VR[1] >= 3025) { //Down Movement
+				  char type[] = "DOWN MOVEMENT";
+				  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
+				 	if(p1PrevMoveType != 3) {
+						 p1PrevMoveType = 4;
+				 	}
+			  } else {
+				  char type[] = "IDLE MOVEMENT";
+				  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				  	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
+			  }
+			  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+			  	  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
 
-	  //Movement Logic
-	  bool p1Move = false;
-	  if(VR[0] <= 15) { //Left Movement
-		  char type[] = "LEFT MOVEMENT";
-		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		  	  HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
-		  if(p1PrevMoveType != 2) {
-			  p1PrevMoveType = 1;
+			  p1MoveDelay = HAL_GetTick() + playerControlDelay;
 		  }
-	  } else if(VR[0] >= 3055) { //Right Movement
-		  char type[] = "RIGHT MOVEMENT";
-		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
-		 	if(p1PrevMoveType != 1) {
-				 p1PrevMoveType = 2;
-		 	}
-	  } else if(VR[1] <= 15) { //Up Movement
-		  char type[] = "UP MOVEMENT";
-		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
-		 	if(p1PrevMoveType != 4) {
-				 p1PrevMoveType = 3;
-		 	}
-	  } else if(VR[1] >= 3025) { //Down Movement
-		  char type[] = "DOWN MOVEMENT";
-		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
-		 	if(p1PrevMoveType != 3) {
-				 p1PrevMoveType = 4;
-		 	}
-	  } else {
-		  char type[] = "IDLE MOVEMENT";
-		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		  	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
+
+		  //Draw Logic
+		  if(HAL_GetTick() - currentMoveDelay >= 0) {
+			  moveP1AutoMove(p1PrevMoveType);
+			  currentMoveDelay = HAL_GetTick() + playerMoveDelay;
+		  }
+
+		  for(int i = 0 ; i < p1Length ; i++) {
+			  ILI9341_Draw_Rectangle(10*p1X[i], 10*p1Y[i], 10, 10, 0);
+		  }
+
+		  HAL_Delay(200);
 	  }
-	  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-	  	  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
-
-
-	  //Draw Logic
-	  moveP1AutoMove(p1PrevMoveType);
-	  for(int i = 0 ; i < 5 ; i++) {
-		  ILI9341_Draw_Rectangle(10*p1X[i], 10*p1Y[i], 10, 10, 0);
-	  }
-
-	  HAL_Delay(200);
 
 
   }
