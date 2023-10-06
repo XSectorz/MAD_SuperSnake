@@ -68,7 +68,11 @@ uint32_t playerMoveDelay = 150;
 uint8_t pointLoc[2] = {0,0};
 uint32_t p1Score = 0;
 uint8_t timer = 100; //In secs
-uint8_t gameState = 0; //0 = Title Page, 1 = Setting Mode Page, 2 = Game Start Page , 3 = Game End Page
+uint8_t gameState = 1; //0 = Title Page, 1 = Setting Mode Page, 2 = Game Start Page , 3 = Game End Page
+uint8_t gameDiffType = 3; //1 = Easy 2 = Normal 3 = Hard
+uint8_t playerAmount = 1;
+uint8_t moveControlType = 0; //0 = IDLE 1 = LEFT 2 = RIGHT 3 = UP 4 = DOWN
+uint8_t mainMenuSelectType = 0; //0 = Difficult 1 = Players, 2 =  Start
 
 bool isPointSpawn = false;
 bool isCalculateDone = true;
@@ -314,18 +318,22 @@ void moveP1AutoMove(uint8_t moveType) {
 
 void gameMainMenu() {
 	uint32_t currentTime = HAL_GetTick();
+	drawBorder(textColor[currentTime%8]);
+	ILI9341_Draw_Text("PRESS TO START", 75, 160, textColor[currentTime%8], 2, BLACK);
+	drawMenuText();
+}
+
+void drawBorder(uint32_t color) {
 	for(int i = 0 ; i < 24 ; i++) {
 		  if(i==0 || i == 23) {
 			  for(int j = 0 ; j < 32 ; j++) {
-				  ILI9341_Draw_Rectangle(10*j, 10*i, 10, 10, textColor[currentTime%8]);
+				  ILI9341_Draw_Rectangle(10*j, 10*i, 10, 10, color);
 			  }
 		  } else {
-			  ILI9341_Draw_Rectangle(0, 10*i, 10, 10, textColor[currentTime%8]);
-			  ILI9341_Draw_Rectangle(310, 10*i, 10, 10, textColor[currentTime%8]);
+			  ILI9341_Draw_Rectangle(0, 10*i, 10, 10, color);
+			  ILI9341_Draw_Rectangle(310, 10*i, 10, 10, color);
 		  }
 	  }
-	ILI9341_Draw_Text("PRESS TO START", 75, 160, textColor[currentTime%8], 2, BLACK);
-	 drawMenuText();
 }
 
 void drawMenuText(uint32_t textColor) {
@@ -395,6 +403,188 @@ void drawMenuText(uint32_t textColor) {
 
 }
 
+void drawNumberBar(uint32_t positionX,uint32_t positionY,uint32_t color,uint8_t type,bool isGlow) {
+
+	if(isGlow) {
+		color = 7972;
+	}
+
+	/* < Text */
+	ILI9341_Draw_Rectangle(189+positionX, 59+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(192+positionX, 56+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(192+positionX, 62+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(195+positionX, 53+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(195+positionX, 65+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(198+positionX, 50+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(198+positionX, 68+positionY, 9, 3, color);
+
+	if(type == 1) {
+		ILI9341_Draw_Rectangle(228+positionX, 50+positionY, 6, 18, color);
+		ILI9341_Draw_Rectangle(225+positionX, 53+positionY, 3, 3, color);
+		ILI9341_Draw_Rectangle(225+positionX, 68+positionY, 12, 3, color);
+	} else if(type == 2) {
+		ILI9341_Draw_Rectangle(222+positionX, 53+positionY, 6, 3, color);
+		ILI9341_Draw_Rectangle(225+positionX, 50+positionY, 12, 3, color);
+		ILI9341_Draw_Rectangle(234+positionX, 53+positionY, 6, 3, color);
+		ILI9341_Draw_Rectangle(231+positionX, 56+positionY, 9, 3, color);
+		ILI9341_Draw_Rectangle(228+positionX, 59+positionY, 9, 3, color);
+		ILI9341_Draw_Rectangle(225+positionX, 62+positionY, 6, 3, color);
+		ILI9341_Draw_Rectangle(222+positionX, 65+positionY, 6, 6, color);
+		ILI9341_Draw_Rectangle(228+positionX, 68+positionY, 6, 3, color);
+		ILI9341_Draw_Rectangle(234+positionX, 65+positionY, 6, 6, color);
+	} else if(type == 3) {
+		ILI9341_Draw_Rectangle(222+positionX, 53+positionY, 6, 3, color);
+		ILI9341_Draw_Rectangle(225+positionX, 50+positionY, 12, 3, color);
+		ILI9341_Draw_Rectangle(234+positionX, 53+positionY, 6, 6, color);
+		ILI9341_Draw_Rectangle(228+positionX, 59+positionY, 6, 3, color);
+		ILI9341_Draw_Rectangle(234+positionX, 62+positionY, 6, 6, color);
+		ILI9341_Draw_Rectangle(222+positionX, 65+positionY, 6, 3, color);
+		ILI9341_Draw_Rectangle(225+positionX, 68+positionY, 12, 3, color);
+	}
+
+	/* > Text */
+	ILI9341_Draw_Rectangle(255+positionX, 50+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(255+positionX, 68+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(258+positionX, 53+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(258+positionX, 65+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(264+positionX, 56+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(264+positionX, 62+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(267+positionX, 59+positionY, 6, 3, color);
+}
+
+void drawPlayersText(uint32_t positionX,uint32_t positionY,uint32_t color) {
+	ILI9341_Draw_Rectangle(15+positionX, 95+positionY, 15, 3, color);
+	ILI9341_Draw_Rectangle(15+positionX, 98+positionY, 6, 18, color);
+	ILI9341_Draw_Rectangle(27+positionX, 98+positionY, 6, 9, color);
+	ILI9341_Draw_Rectangle(21+positionX, 107+positionY, 9, 3, color);
+
+	ILI9341_Draw_Rectangle(36+positionX, 95+positionY, 6, 21, color);
+	ILI9341_Draw_Rectangle(42+positionX, 110+positionY, 12, 6, color);
+
+	ILI9341_Draw_Rectangle(60+positionX, 95+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(57+positionX, 98+positionY, 6, 18, color);
+	ILI9341_Draw_Rectangle(69+positionX, 98+positionY, 6, 18, color);
+	ILI9341_Draw_Rectangle(63+positionX, 107+positionY, 6, 3, color);
+
+	ILI9341_Draw_Rectangle(78+positionX, 95+positionY, 6, 9, color);
+	ILI9341_Draw_Rectangle(81+positionX, 104+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(90+positionX, 95+positionY, 6, 9, color);
+	ILI9341_Draw_Rectangle(84+positionX, 107+positionY, 6, 9, color);
+
+	ILI9341_Draw_Rectangle(99+positionX, 95+positionY, 6, 21, color);
+	ILI9341_Draw_Rectangle(105+positionX, 95+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(105+positionX, 104+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(105+positionX, 113+positionY, 12, 3, color);
+
+	ILI9341_Draw_Rectangle(120+positionX, 95+positionY, 6, 21, color);
+	ILI9341_Draw_Rectangle(126+positionX, 95+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(132+positionX, 98+positionY, 6, 9, color);
+	ILI9341_Draw_Rectangle(129+positionX, 104+positionY, 3, 9, color);
+	ILI9341_Draw_Rectangle(126+positionX, 107+positionY, 3, 3, color);
+	ILI9341_Draw_Rectangle(132+positionX, 110+positionY, 3, 6, color);
+	ILI9341_Draw_Rectangle(135+positionX, 113+positionY, 3, 3, color);
+
+	ILI9341_Draw_Rectangle(141+positionX, 98+positionY, 6, 6, color);
+	ILI9341_Draw_Rectangle(144+positionX, 95+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(153+positionX, 98+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(144+positionX, 104+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(153+positionX, 107+positionY, 6, 6, color);
+	ILI9341_Draw_Rectangle(144+positionX, 113+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(141+positionX, 110+positionY, 6, 3, color);
+
+	bool isGlow = false;
+	if(mainMenuSelectType == 1) {
+		isGlow = true;
+	}
+
+	drawNumberBar(positionX,45,color,playerAmount,isGlow);
+}
+
+void drawDifficultText(uint32_t positionX,uint32_t positionY,uint32_t color) {
+	ILI9341_Draw_Rectangle(15+positionX, 50+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(15+positionX, 53+positionY, 6, 15, color);
+	ILI9341_Draw_Rectangle(15+positionX, 68+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(24+positionX, 53+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(24+positionX, 65+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(27+positionX, 56+positionY, 6, 9, color);
+
+	ILI9341_Draw_Rectangle(36+positionX, 50+positionY, 6, 21, color);
+
+	ILI9341_Draw_Rectangle(45+positionX, 50+positionY, 6, 21, color);
+	ILI9341_Draw_Rectangle(51+positionX, 50+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(51+positionX, 59+positionY, 9, 3, color);
+
+	ILI9341_Draw_Rectangle(66+positionX, 50+positionY, 6, 21, color);
+	ILI9341_Draw_Rectangle(72+positionX, 50+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(72+positionX, 59+positionY, 9, 3, color);
+
+	ILI9341_Draw_Rectangle(87+positionX, 50+positionY, 6, 21, color);
+
+	ILI9341_Draw_Rectangle(96+positionX, 56+positionY, 6, 9, color);
+	ILI9341_Draw_Rectangle(99+positionX, 53+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(99+positionX, 65+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(102+positionX, 50+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(102+positionX, 68+positionY, 9, 3, color);
+	ILI9341_Draw_Rectangle(108+positionX, 53+positionY, 6, 3, color);
+	ILI9341_Draw_Rectangle(108+positionX, 65+positionY, 6, 3, color);
+
+	ILI9341_Draw_Rectangle(117+positionX, 50+positionY, 6, 18, color);
+	ILI9341_Draw_Rectangle(120+positionX, 68+positionY, 12, 3, color);
+	ILI9341_Draw_Rectangle(129+positionX, 50+positionY, 6, 18, color);
+
+	ILI9341_Draw_Rectangle(138+positionX, 50+positionY, 6, 21, color);
+	ILI9341_Draw_Rectangle(144+positionX, 65+positionY, 12, 6, color);
+
+	ILI9341_Draw_Rectangle(156+positionX, 50+positionY, 18, 3, color); //END AT 174 PX
+	ILI9341_Draw_Rectangle(162+positionX, 53+positionY, 6, 18, color);
+
+	bool isGlow = false;
+	if(mainMenuSelectType == 0) {
+		isGlow = true;
+	}
+
+	drawNumberBar(positionX,positionY,color,gameDiffType,isGlow);
+}
+
+void drawStartText(uint32_t positionX,uint32_t positionY,uint32_t color) {
+
+
+	if(mainMenuSelectType == 2) {
+		color = 7972;
+	}
+
+	ILI9341_Draw_Rectangle(100+positionX, 162+positionY, 16, 4, color);
+	ILI9341_Draw_Rectangle(112+positionX, 166+positionY, 8, 4, color);
+	ILI9341_Draw_Rectangle(96+positionX, 166+positionY, 8, 8, color);
+	ILI9341_Draw_Rectangle(100+positionX, 172+positionY, 16, 4, color); //END 124 PX
+	ILI9341_Draw_Rectangle(112+positionX, 176+positionY, 8, 8, color);
+	ILI9341_Draw_Rectangle(96+positionX, 180+positionY, 8, 4, color);
+	ILI9341_Draw_Rectangle(98+positionX, 184+positionY, 16, 4, color);
+
+	ILI9341_Draw_Rectangle(124+positionX, 162+positionY, 24, 4, color); //END AT 152
+	ILI9341_Draw_Rectangle(132+positionX, 166+positionY, 8, 24, color);
+
+	ILI9341_Draw_Rectangle(152+positionX, 166+positionY, 8, 24, color);
+	ILI9341_Draw_Rectangle(156+positionX, 162+positionY, 16, 4, color); //END AT 180
+	ILI9341_Draw_Rectangle(168+positionX, 166+positionY, 8, 24, color);
+	ILI9341_Draw_Rectangle(160+positionX, 178+positionY, 8, 4, color);
+
+	ILI9341_Draw_Rectangle(180+positionX, 162+positionY, 8, 28, color);
+	ILI9341_Draw_Rectangle(188+positionX, 162+positionY, 12, 4, color);
+	ILI9341_Draw_Rectangle(196+positionX, 166+positionY, 8, 8, color);
+	ILI9341_Draw_Rectangle(192+positionX, 174+positionY, 12, 4, color);
+	ILI9341_Draw_Rectangle(188+positionX, 178+positionY, 8, 4, color);
+	ILI9341_Draw_Rectangle(192+positionX, 182+positionY, 8, 4, color);
+	ILI9341_Draw_Rectangle(196+positionX, 186+positionY, 8, 4, color);
+
+	ILI9341_Draw_Rectangle(208+positionX, 162+positionY, 24, 4, color);
+	ILI9341_Draw_Rectangle(216+positionX, 166+positionY, 8, 24, color);
+}
+
+void clearBG(uint32_t posX,uint32_t posY,uint32_t weight,uint32_t height,uint32_t color) {
+	ILI9341_Draw_Rectangle(posX, posY, weight, height, color);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -447,7 +637,12 @@ int main(void)
   srand(HAL_RNG_GetRandomNumber(&hrng));
   int scaledValueX = VR[0];
   int scaledValueY = VR[1];
+  uint32_t controlMoveDelay = 0;
   gameInit();
+
+  drawDifficultText(12,0,65535);
+  drawPlayersText(12,0,65535);
+  drawStartText(-5,0,65535);
 
   while (1)
   {
@@ -474,29 +669,94 @@ int main(void)
 		  }
 	  }*/
 
+	  uint32_t currentTime = HAL_GetTick();
+	  scaledValueX = VR[0];
+	  scaledValueY = VR[1];
+
+	  snprintf(hexStringX, sizeof(hexStringX), "%d", scaledValueX);
+	  snprintf(hexStringY, sizeof(hexStringY), " %d", scaledValueY);
+
+	  if(currentTime-controlMoveDelay >= 1000) {
+		  controlMoveDelay = HAL_GetTick();
+		  if(scaledValueX < 300) {
+			  //Up
+			  moveControlType = 3;
+		  } else if(scaledValueX > 3000) {
+			  //Down
+			  moveControlType = 4;
+		  } else if(scaledValueY > 3000) {
+			  //Left
+			  moveControlType = 1;
+		  } else if(scaledValueY < 1000) {
+			  //Right
+			  moveControlType = 2;
+		  } else {
+			  //Idle
+			  moveControlType = 0;
+		  }
+		  if(gameState == 1) {
+		  	if(moveControlType == 1) {
+		  		if(mainMenuSelectType == 0) {
+					clearBG(222,50,30,30,0);
+			  		if(gameDiffType == 1) {
+			  			gameDiffType = 3;
+			  		} else {
+			  			gameDiffType -= 1;
+			  		}
+		  		} else if(mainMenuSelectType == 1) {
+		  			clearBG(222,95,30,30,0);
+		  			if(playerAmount == 1) {
+		  				playerAmount = 2;
+		  			} else {
+		  				playerAmount--;
+		  			}
+		  		}
+		  	} else if(moveControlType == 2) {
+		  		if(mainMenuSelectType == 0) {
+					clearBG(222,50,30,30,0);
+			  		if(gameDiffType == 3) {
+			  			gameDiffType = 1;
+			  		} else {
+			  			gameDiffType += 1;
+			  		}
+		  		} else if(mainMenuSelectType == 1) {
+		  			clearBG(222,95,30,30,0);
+		  			if(playerAmount == 2) {
+		  				playerAmount = 1;
+		  			} else {
+		  				playerAmount++;
+		  			}
+		  		}
+		  	} else if(moveControlType == 3) {
+		  		if(mainMenuSelectType == 0) {
+		  			mainMenuSelectType = 2;
+		  		} else {
+		  			mainMenuSelectType--;
+		  		}
+		  	} else if(moveControlType == 4) {
+		  		if(mainMenuSelectType == 2) {
+		  			mainMenuSelectType = 0;
+		  		} else {
+		  			mainMenuSelectType++;
+		  		}
+		  	}
+			drawDifficultText(12,0,65535);
+			drawPlayersText(12,0,65535);
+			drawStartText(-5,0,65535);
+		  }
+
+	  }
+
 	  if(gameState == 0) {
 		  gameMainMenu();
-
-		  scaledValueX = VR[0];
-		  scaledValueY = VR[1];
-		  snprintf(hexStringX, sizeof(hexStringX), "%d", scaledValueX);
-		  snprintf(hexStringY, sizeof(hexStringY), " %d", scaledValueY);
-
-		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		  HAL_UART_Transmit(&huart3, (uint8_t*)hexStringX, strlen(hexStringX), HAL_MAX_DELAY);
-
-		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		  HAL_UART_Transmit(&huart3, (uint8_t*)hexStringY, strlen(hexStringY), HAL_MAX_DELAY);
-
-		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
 	  } else if(gameState == 1) {
 
+			drawBorder(textColor[HAL_GetTick()%8]);
 	  } else if(gameState == 2) {
 		  resetMap();
 		  scaledValueX = VR[0];
 		  scaledValueY = VR[1];
-		  snprintf(hexStringX, sizeof(hexStringX), "%d", scaledValueX);
+		  /*snprintf(hexStringX, sizeof(hexStringX), "%d", scaledValueX);
 		  snprintf(hexStringY, sizeof(hexStringY), " %d", scaledValueY);
 
 		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
@@ -506,7 +766,7 @@ int main(void)
 		  HAL_UART_Transmit(&huart3, (uint8_t*)hexStringY, strlen(hexStringY), HAL_MAX_DELAY);
 
 		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-		  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
+		  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);*/
 		  //HAL_Delay(500);
 
 		  if(HAL_GetTick() - lastTimerCounter >= 1000) {
@@ -521,7 +781,6 @@ int main(void)
 			  ILI9341_Draw_Text(timerBuffer, 150, 7, textColor[timer%8], 2, WHITE);
 		  }
 
-		  HAL_Delay(500);
 
 		  if(isGameStart) {
 
@@ -537,26 +796,8 @@ int main(void)
 
 			  //Movement Logic
 			  if(HAL_GetTick() - lastControlTime >= playerControlDelay) {
-				  scaledValueX = VR[0];
-				  scaledValueY = VR[1];
-
-				  snprintf(hexStringX, sizeof(hexStringX), "%d", scaledValueX);
-				  snprintf(hexStringY, sizeof(hexStringY), " %d", scaledValueY);
-
-				  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-				  HAL_UART_Transmit(&huart3, (uint8_t*)hexStringX, strlen(hexStringX), HAL_MAX_DELAY);
-
-				  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-				  HAL_UART_Transmit(&huart3, (uint8_t*)hexStringY, strlen(hexStringY), HAL_MAX_DELAY);
-
-				  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-				  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
-
 				  lastControlTime = HAL_GetTick();
 					if((scaledValueX >= 0 && scaledValueX <= 12) && (scaledValueY >= 0 && scaledValueY <= 3033)) { //Left Movement
-						  char type[] = "LEFT MOVEMENT";
-						  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-						  	  HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
 						  if(scaledValueY <= 20) {
 							  p1PrevMoveType = 3;
 						  } else {
@@ -565,25 +806,16 @@ int main(void)
 							  }
 						  }
 					  } else if((scaledValueX >= 3056 && scaledValueX <= 3067) && (scaledValueY >= 1 && scaledValueY <= 3048)) { //Right Movement
-						  char type[] = "RIGHT MOVEMENT";
-						  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-						 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
 						 	if(p1PrevMoveType != 1) {
 								 p1PrevMoveType = 2;
 						 	} else {
 						 		p1PrevMoveType = 4;
 						 	}
 					  } else if((scaledValueX >= 537 && scaledValueX <= 4095) && (scaledValueY >= 0 && scaledValueY <= 10)) { //Up Movement
-						  char type[] = "UP MOVEMENT";
-						  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-						 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
 						 	if(p1PrevMoveType != 4) {
 								 p1PrevMoveType = 3;
 						 	}
 					  } else if((scaledValueX <= 3000 || scaledValueX >= 3148)) { //Down Movement
-						  char type[] = "DOWN MOVEMENT";
-						  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-						 	HAL_UART_Transmit(&huart3, (uint8_t*)type, strlen(type), HAL_MAX_DELAY);
 						 	if(p1PrevMoveType != 3) {
 								 p1PrevMoveType = 4;
 						 	}
@@ -598,8 +830,8 @@ int main(void)
 					  }
 
 					  p1TempPrevMoveType = p1PrevMoveType;
-					  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-					  	  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
+					 // while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+					 // 	  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
 			  }
 
 		  }
