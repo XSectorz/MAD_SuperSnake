@@ -64,15 +64,16 @@ uint8_t spawnPosX[10] = {10,11,12,13,13,13,14,15,16,17};
 uint8_t spawnPosY[10] = {10,10,10,10,11,12,12,12,12,12};
 bool isGameStart = false;
 uint32_t playerControlDelay = 300;//In millis
-uint32_t playerMoveDelay = 150;
+uint32_t playerMoveDelay = 250;
 uint8_t pointLoc[2] = {0,0};
 uint32_t p1Score = 0;
 uint8_t timer = 100; //In secs
-uint8_t gameState = 1; //0 = Title Page, 1 = Setting Mode Page, 2 = Game Start Page , 3 = Game End Page
+uint8_t gameState = 0; //0 = Title Page, 1 = Setting Mode Page, 2 = Game Start Page , 3 = Game End Page
 uint8_t gameDiffType = 3; //1 = Easy 2 = Normal 3 = Hard
 uint8_t playerAmount = 1;
 uint8_t moveControlType = 0; //0 = IDLE 1 = LEFT 2 = RIGHT 3 = UP 4 = DOWN
 uint8_t mainMenuSelectType = 0; //0 = Difficult 1 = Players, 2 =  Start
+uint32_t currentStateDelay = 1000;
 
 bool isPointSpawn = false;
 bool isCalculateDone = true;
@@ -87,8 +88,7 @@ uint8_t p1X[100] = {10,11,12,13,13,13,14,15,16,17};
 uint8_t p1Y[100] = {10,10,10,10,11,12,12,12,12,12};
 uint32_t textColor[8] = {12058,25859,9466,49459,12532,59613,15794,46211};
 uint8_t p1Length = 10;
-uint8_t p1PrevMoveType = 1; //0 = IDLE 1 = LEFT 2 = RIGHT 3 = UP 4 = DOWN
-uint8_t p1TempPrevMoveType = 1;
+uint8_t p1TempPrevMoveType = 1; //0 = IDLE 1 = LEFT 2 = RIGHT 3 = UP 4 = DOWN
 uint32_t p1MoveDelay = 0;
 bool isAddSnake = false;
 /* USER CODE END PV */
@@ -112,28 +112,31 @@ void isSnakeBitePoint() {
 }
 
 void addSnakeLength() {
-	p1Length = p1Length + 1;
-	p1X[p1Length-1] = p1X[p1Length-2]; //Add last index as previous last index
-	p1Y[p1Length-1] = p1Y[p1Length-2];
-	isAddSnake = true;
-	isAddSnakeDone = true;
-	lastControlTime = HAL_GetTick();
 
-	char line[] = "\n\r";
-	char stri[] = "ADD LENGTH --> ";
-		while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-			HAL_UART_Transmit(&huart3, (uint8_t*)stri, strlen(stri), HAL_MAX_DELAY);
-	char hexStringX[8];
-		snprintf(hexStringX, sizeof(hexStringX), " %d",  p1X[0]);
-		while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-			HAL_UART_Transmit(&huart3, (uint8_t*)hexStringX, strlen(hexStringX), HAL_MAX_DELAY);
-	char hexStringY[8];
-		snprintf(hexStringY, sizeof(hexStringY), " %d",  p1Y[0]);
-		while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-			HAL_UART_Transmit(&huart3, (uint8_t*)hexStringY, strlen(hexStringY), HAL_MAX_DELAY);
+	if(p1Length < 17) {
+		p1Length = p1Length + 1;
+		p1X[p1Length-1] = p1X[p1Length-2]; //Add last index as previous last index
+		p1Y[p1Length-1] = p1Y[p1Length-2];
+		isAddSnake = true;
+		isAddSnakeDone = true;
+		lastControlTime = HAL_GetTick();
 
-		while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-			HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
+		char line[] = "\n\r";
+		char stri[] = "ADD LENGTH --> ";
+			while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				HAL_UART_Transmit(&huart3, (uint8_t*)stri, strlen(stri), HAL_MAX_DELAY);
+		char hexStringX[8];
+			snprintf(hexStringX, sizeof(hexStringX), " %d",  p1X[0]);
+			while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				HAL_UART_Transmit(&huart3, (uint8_t*)hexStringX, strlen(hexStringX), HAL_MAX_DELAY);
+		char hexStringY[8];
+			snprintf(hexStringY, sizeof(hexStringY), " %d",  p1Y[0]);
+			while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				HAL_UART_Transmit(&huart3, (uint8_t*)hexStringY, strlen(hexStringY), HAL_MAX_DELAY);
+
+			while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+				HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
+	}
 	//char hexStringX[8];
 	//snprintf(hexStringX, sizeof(hexStringX), " %d", p1Length);
 	//while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
@@ -172,7 +175,7 @@ void randomPointLoc() {
 
 	pointLoc[0] = randX[num];
 	pointLoc[1] = randY[num];
-	ILI9341_Draw_Rectangle(10*pointLoc[0]+5, 10*pointLoc[1]+5, 8, 8, 59430);
+	ILI9341_Draw_Rectangle(10*pointLoc[0]+2, 10*pointLoc[1]+2, 8, 8, 59430);
 	isPointSpawn = true;
 
 }
@@ -180,7 +183,7 @@ void randomPointLoc() {
 void resetP1Position() {
 
 	p1Length = 10;
-	p1PrevMoveType = 1;
+	p1TempPrevMoveType = 1;
 	for(int i = 0 ; i < p1Length ; i++) {
 		p1X[i] = spawnPosX[i];
 	}
@@ -640,9 +643,10 @@ int main(void)
   uint32_t controlMoveDelay = 0;
   gameInit();
 
-  drawDifficultText(12,0,65535);
-  drawPlayersText(12,0,65535);
-  drawStartText(-5,0,65535);
+  //drawDifficultText(12,0,65535);
+  //drawPlayersText(12,0,65535);
+  //drawStartText(-5,0,65535);
+
 
   while (1)
   {
@@ -676,7 +680,7 @@ int main(void)
 	  snprintf(hexStringX, sizeof(hexStringX), "%d", scaledValueX);
 	  snprintf(hexStringY, sizeof(hexStringY), " %d", scaledValueY);
 
-	  if(currentTime-controlMoveDelay >= 1000) {
+	  if(currentTime-controlMoveDelay >= currentStateDelay) {
 		  controlMoveDelay = HAL_GetTick();
 		  if(scaledValueX < 300) {
 			  //Up
@@ -743,6 +747,44 @@ int main(void)
 			drawDifficultText(12,0,65535);
 			drawPlayersText(12,0,65535);
 			drawStartText(-5,0,65535);
+		  } else if(gameState == 2) {
+			 /* snprintf(hexStringX, sizeof(hexStringX), "%d", moveControlType);
+			  snprintf(hexStringY, sizeof(hexStringY), " %d", p1TempPrevMoveType);
+
+			  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+			  HAL_UART_Transmit(&huart3, (uint8_t*)hexStringX, strlen(hexStringX), HAL_MAX_DELAY);
+
+			  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+			  HAL_UART_Transmit(&huart3, (uint8_t*)hexStringY, strlen(hexStringY), HAL_MAX_DELAY);
+
+			  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+			  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);*/
+
+			  //Movement Logic
+			  uint8_t tempMoveType = moveControlType;
+			  bool canMove = true;
+			  if((tempMoveType == 2 && p1TempPrevMoveType == 1)) { //Move Right If current is left --> not change!
+				  canMove = false;
+			  } else if((tempMoveType == 1 && p1TempPrevMoveType == 2)) { //Move Left If current is right --> not change!
+				  canMove = false;
+			  } else if((tempMoveType == 3 && p1TempPrevMoveType == 4)) { //Move Up If current is down --> not change!
+				  canMove = false;
+			  } else if((tempMoveType == 4 && p1TempPrevMoveType == 3)) { //Move Down If current is up --> not change!
+				  canMove = false;
+			  }
+
+			  if(tempMoveType == 0) {
+				  tempMoveType = p1TempPrevMoveType;
+			  }
+
+			  if(p1TempPrevMoveType != tempMoveType && canMove) {
+				  moveP1AutoMove(tempMoveType);
+				  lastMoveTime =  HAL_GetTick();
+				  for(int i = 0 ; i < p1Length ; i++) {
+					  ILI9341_Draw_Rectangle(10*p1X[i], 10*p1Y[i], 10, 10, 0);
+				  }
+				  p1TempPrevMoveType = tempMoveType;
+			  }
 		  }
 
 	  }
@@ -753,9 +795,6 @@ int main(void)
 
 			drawBorder(textColor[HAL_GetTick()%8]);
 	  } else if(gameState == 2) {
-		  resetMap();
-		  scaledValueX = VR[0];
-		  scaledValueY = VR[1];
 		  /*snprintf(hexStringX, sizeof(hexStringX), "%d", scaledValueX);
 		  snprintf(hexStringY, sizeof(hexStringY), " %d", scaledValueY);
 
@@ -768,7 +807,7 @@ int main(void)
 		  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
 		  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);*/
 		  //HAL_Delay(500);
-
+		  currentStateDelay = 100;
 		  if(HAL_GetTick() - lastTimerCounter >= 1000) {
 			  timer--;
 			  lastTimerCounter = HAL_GetTick();
@@ -784,55 +823,19 @@ int main(void)
 
 		  if(isGameStart) {
 
+
+			  // while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
+			  // 	  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
 			  //Draw Logic
 			  if (HAL_GetTick() - lastMoveTime >= playerMoveDelay && isCalculateDone && isAddSnakeDone) {
 				  isCalculateDone = false;
 			      lastMoveTime =  HAL_GetTick();
-			      moveP1AutoMove(p1PrevMoveType);
+			      moveP1AutoMove(p1TempPrevMoveType);
 			      for(int i = 0 ; i < p1Length ; i++) {
 			          ILI9341_Draw_Rectangle(10*p1X[i], 10*p1Y[i], 10, 10, 0);
 			      }
 			  }
 
-			  //Movement Logic
-			  if(HAL_GetTick() - lastControlTime >= playerControlDelay) {
-				  lastControlTime = HAL_GetTick();
-					if((scaledValueX >= 0 && scaledValueX <= 12) && (scaledValueY >= 0 && scaledValueY <= 3033)) { //Left Movement
-						  if(scaledValueY <= 20) {
-							  p1PrevMoveType = 3;
-						  } else {
-							  if(p1PrevMoveType != 2) {
-								  p1PrevMoveType = 1;
-							  }
-						  }
-					  } else if((scaledValueX >= 3056 && scaledValueX <= 3067) && (scaledValueY >= 1 && scaledValueY <= 3048)) { //Right Movement
-						 	if(p1PrevMoveType != 1) {
-								 p1PrevMoveType = 2;
-						 	} else {
-						 		p1PrevMoveType = 4;
-						 	}
-					  } else if((scaledValueX >= 537 && scaledValueX <= 4095) && (scaledValueY >= 0 && scaledValueY <= 10)) { //Up Movement
-						 	if(p1PrevMoveType != 4) {
-								 p1PrevMoveType = 3;
-						 	}
-					  } else if((scaledValueX <= 3000 || scaledValueX >= 3148)) { //Down Movement
-						 	if(p1PrevMoveType != 3) {
-								 p1PrevMoveType = 4;
-						 	}
-					  }
-
-					  if(p1TempPrevMoveType != p1PrevMoveType) {
-						  moveP1AutoMove(p1PrevMoveType);
-						  lastMoveTime =  HAL_GetTick();
-					      for(int i = 0 ; i < p1Length ; i++) {
-					          ILI9341_Draw_Rectangle(10*p1X[i], 10*p1Y[i], 10, 10, 0);
-					      }
-					  }
-
-					  p1TempPrevMoveType = p1PrevMoveType;
-					 // while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET) {}
-					 // 	  HAL_UART_Transmit(&huart3, (uint8_t*)line, strlen(line), HAL_MAX_DELAY);
-			  }
 
 		  }
 	  } else if(gameState == 3) {
