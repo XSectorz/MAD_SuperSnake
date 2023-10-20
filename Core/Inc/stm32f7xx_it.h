@@ -48,6 +48,7 @@
 
 /* Exported functions prototypes ---------------------------------------------*/
 void SysTick_Handler(void);
+void EXTI1_IRQHandler(void);
 void ADC_IRQHandler(void);
 void DMA2_Stream0_IRQHandler(void);
 /* USER CODE BEGIN EFP */
