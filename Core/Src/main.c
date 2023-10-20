@@ -130,6 +130,15 @@ uint32_t currentGlobalIndex = 0;
 
 bool isAddP1Snake = false;
 bool isAddP2Snake = false;
+
+uint32_t controlMoveDelay = 0;
+uint32_t currentP1MoveDelay = 0;
+uint32_t currentP2MoveDelay = 0;
+
+int scaledValueX;
+int scaledValueY;
+int scaledValueXP2;
+int scaledValueYP2;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -951,14 +960,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   srand(HAL_RNG_GetRandomNumber(&hrng));
-  int scaledValueX = VR[0];
-  int scaledValueY = VR[1];
-  int scaledValueXP2 = VR[2];
-  int scaledValueYP2 = VR[3];
-  uint32_t controlMoveDelay = 0;
   uint32_t lastGameoverUpdate = 0;
-  uint32_t currentP1MoveDelay = 0;
-  uint32_t currentP2MoveDelay = 0;
   gameInit();
 
   //drawDifficultText(12,0,65535);
@@ -993,6 +995,149 @@ int main(void)
 		  }
 	  }*/
 
+		uint32_t currentTime = HAL_GetTick();
+		//HAL_UART_Transmit(&huart3,(uint8_t *)"Test2",sizeof("Test2"),100);
+		  if(currentTime-controlMoveDelay >= currentStateDelay) {
+			  controlMoveDelay = HAL_GetTick();
+			  if(scaledValueX < 300) {
+				  //Up
+				  p1MoveControlType = 3;
+			  } else if(scaledValueX > 3000) {
+				  //Down
+				  p1MoveControlType = 4;
+			  } else if(scaledValueY > 3000) {
+				  //Left
+				  p1MoveControlType = 1;
+			  } else if(scaledValueY < 1000) {
+				  //Right
+				  p1MoveControlType = 2;
+			  } else {
+				  //Idle
+				  p1MoveControlType = 0;
+			  }
+
+			  if(scaledValueXP2 < 300) {
+				  //Up
+				  p2MoveControlType = 3;
+			  } else if(scaledValueXP2 > 3000) {
+				  //Down
+				  p2MoveControlType = 4;
+			  } else if(scaledValueYP2 > 3000) {
+				  //Left
+				  p2MoveControlType = 1;
+			  } else if(scaledValueYP2 < 1000) {
+				  //Right
+				  p2MoveControlType = 2;
+			  } else {
+				  //Idle
+				  p2MoveControlType = 0;
+			  }
+			  if(gameState == 1) {
+			  	if(p1MoveControlType == 1) {
+			  		if(mainMenuSelectType == 0) {
+						clearBG(222,50,30,30,0);
+				  		if(gameDiffType == 1) {
+				  			gameDiffType = 3;
+				  		} else {
+				  			gameDiffType -= 1;
+				  		}
+			  		} else if(mainMenuSelectType == 1) {
+			  			clearBG(222,95,30,30,0);
+			  			if(playerAmount == 1) {
+			  				playerAmount = 2;
+			  			} else {
+			  				playerAmount--;
+			  			}
+			  		}
+			  	} else if(p1MoveControlType == 2) {
+			  		if(mainMenuSelectType == 0) {
+						clearBG(222,50,30,30,0);
+				  		if(gameDiffType == 3) {
+				  			gameDiffType = 1;
+				  		} else {
+				  			gameDiffType += 1;
+				  		}
+			  		} else if(mainMenuSelectType == 1) {
+			  			clearBG(222,95,30,30,0);
+			  			if(playerAmount == 2) {
+			  				playerAmount = 1;
+			  			} else {
+			  				playerAmount++;
+			  			}
+			  		}
+			  	} else if(p1MoveControlType == 3) {
+			  		if(mainMenuSelectType == 0) {
+			  			mainMenuSelectType = 2;
+			  		} else {
+			  			mainMenuSelectType--;
+			  		}
+			  	} else if(p1MoveControlType == 4) {
+			  		if(mainMenuSelectType == 2) {
+			  			mainMenuSelectType = 0;
+			  		} else {
+			  			mainMenuSelectType++;
+			  		}
+			  	}
+				drawDifficultText(12,0,65535);
+				drawPlayersText(12,0,65535);
+				drawStartText(-5,0,65535);
+			  } else if(gameState == 2) {
+				  //Movement Logic
+				  if(!isPause) {
+					  uint8_t tempMoveType = p1MoveControlType;
+					  bool canMove = true;
+					  if((tempMoveType == 2 && p1TempPrevMoveType == 1)) { //Move Right If current is left --> not change!
+						  canMove = false;
+					  } else if((tempMoveType == 1 && p1TempPrevMoveType == 2)) { //Move Left If current is right --> not change!
+						  canMove = false;
+					  } else if((tempMoveType == 3 && p1TempPrevMoveType == 4)) { //Move Up If current is down --> not change!
+						  canMove = false;
+					  } else if((tempMoveType == 4 && p1TempPrevMoveType == 3)) { //Move Down If current is up --> not change!
+						  canMove = false;
+					  }
+
+					  if(tempMoveType == 0) {
+						  tempMoveType = p1TempPrevMoveType;
+					  }
+
+					  if(p1TempPrevMoveType != tempMoveType && canMove && HAL_GetTick() - currentP1MoveDelay >= playerMoveDelay && gameState != 3) {
+						  moveP1AutoMove(tempMoveType,false);
+						  currentP1MoveDelay = HAL_GetTick();
+						  lastP1MoveTime =  HAL_GetTick();
+						  ILI9341_Draw_Rectangle(10*p1X[0], 10*p1Y[0], 10, 10, p1Color);
+						  p1TempPrevMoveType = tempMoveType;
+					  }
+
+					  if(playerAmount == 2) {
+						  uint8_t tempP2MoveType = p2MoveControlType;
+						  bool canP2Move = true;
+						  if((tempP2MoveType == 2 && p2TempPrevMoveType == 1)) { //Move Right If current is left --> not change!
+							  canP2Move = false;
+						  } else if((tempP2MoveType == 1 && p2TempPrevMoveType == 2)) { //Move Left If current is right --> not change!
+							  canP2Move = false;
+						  } else if((tempP2MoveType == 3 && p2TempPrevMoveType == 4)) { //Move Up If current is down --> not change!
+							  canP2Move = false;
+						  } else if((tempP2MoveType == 4 && p2TempPrevMoveType == 3)) { //Move Down If current is up --> not change!
+							  canP2Move = false;
+						  }
+
+						  if(tempP2MoveType == 0) {
+							  tempP2MoveType = p2TempPrevMoveType;
+						  }
+
+						  if(p2TempPrevMoveType != tempP2MoveType && canP2Move &&  HAL_GetTick() - currentP2MoveDelay >= playerMoveDelay && gameState != 3) {
+							  moveP2AutoMove(tempP2MoveType,false);
+							  lastP2MoveTime =  HAL_GetTick();
+							  currentP2MoveDelay = HAL_GetTick();
+							  ILI9341_Draw_Rectangle(10*p2X[0], 10*p2Y[0], 10, 10, p2Color);
+							  p2TempPrevMoveType = tempP2MoveType;
+						  }
+					  }
+				  }
+			  }
+
+		  }
+
 	  if(HAL_GetTick() - currentGlobalTimer >= 100) {
 		  currentGlobalTimer = HAL_GetTick();
 		  currentGlobalIndex += 1;
@@ -1001,156 +1146,9 @@ int main(void)
 		  }
 	  }
 
-	  uint32_t currentTime = HAL_GetTick();
-	  scaledValueX = VR[0];
-	  scaledValueY = VR[1];
-	  scaledValueXP2 = VR[2];
-	  scaledValueYP2 = VR[3];
-
 	  //snprintf(hexStringX, sizeof(hexStringX), "%d", scaledValueXP2);
 	  //snprintf(hexStringY, sizeof(hexStringY), " %d", scaledValueYP2);
 
-
-	  if(currentTime-controlMoveDelay >= currentStateDelay) {
-		  controlMoveDelay = HAL_GetTick();
-		  if(scaledValueX < 300) {
-			  //Up
-			  p1MoveControlType = 3;
-		  } else if(scaledValueX > 3000) {
-			  //Down
-			  p1MoveControlType = 4;
-		  } else if(scaledValueY > 3000) {
-			  //Left
-			  p1MoveControlType = 1;
-		  } else if(scaledValueY < 1000) {
-			  //Right
-			  p1MoveControlType = 2;
-		  } else {
-			  //Idle
-			  p1MoveControlType = 0;
-		  }
-
-		  if(scaledValueXP2 < 300) {
-			  //Up
-			  p2MoveControlType = 3;
-		  } else if(scaledValueXP2 > 3000) {
-			  //Down
-			  p2MoveControlType = 4;
-		  } else if(scaledValueYP2 > 3000) {
-			  //Left
-			  p2MoveControlType = 1;
-		  } else if(scaledValueYP2 < 1000) {
-			  //Right
-			  p2MoveControlType = 2;
-		  } else {
-			  //Idle
-			  p2MoveControlType = 0;
-		  }
-		  if(gameState == 1) {
-		  	if(p1MoveControlType == 1) {
-		  		if(mainMenuSelectType == 0) {
-					clearBG(222,50,30,30,0);
-			  		if(gameDiffType == 1) {
-			  			gameDiffType = 3;
-			  		} else {
-			  			gameDiffType -= 1;
-			  		}
-		  		} else if(mainMenuSelectType == 1) {
-		  			clearBG(222,95,30,30,0);
-		  			if(playerAmount == 1) {
-		  				playerAmount = 2;
-		  			} else {
-		  				playerAmount--;
-		  			}
-		  		}
-		  	} else if(p1MoveControlType == 2) {
-		  		if(mainMenuSelectType == 0) {
-					clearBG(222,50,30,30,0);
-			  		if(gameDiffType == 3) {
-			  			gameDiffType = 1;
-			  		} else {
-			  			gameDiffType += 1;
-			  		}
-		  		} else if(mainMenuSelectType == 1) {
-		  			clearBG(222,95,30,30,0);
-		  			if(playerAmount == 2) {
-		  				playerAmount = 1;
-		  			} else {
-		  				playerAmount++;
-		  			}
-		  		}
-		  	} else if(p1MoveControlType == 3) {
-		  		if(mainMenuSelectType == 0) {
-		  			mainMenuSelectType = 2;
-		  		} else {
-		  			mainMenuSelectType--;
-		  		}
-		  	} else if(p1MoveControlType == 4) {
-		  		if(mainMenuSelectType == 2) {
-		  			mainMenuSelectType = 0;
-		  		} else {
-		  			mainMenuSelectType++;
-		  		}
-		  	}
-			drawDifficultText(12,0,65535);
-			drawPlayersText(12,0,65535);
-			drawStartText(-5,0,65535);
-		  } else if(gameState == 2) {
-			  //Movement Logic
-			  if(!isPause) {
-				  uint8_t tempMoveType = p1MoveControlType;
-				  bool canMove = true;
-				  if((tempMoveType == 2 && p1TempPrevMoveType == 1)) { //Move Right If current is left --> not change!
-					  canMove = false;
-				  } else if((tempMoveType == 1 && p1TempPrevMoveType == 2)) { //Move Left If current is right --> not change!
-					  canMove = false;
-				  } else if((tempMoveType == 3 && p1TempPrevMoveType == 4)) { //Move Up If current is down --> not change!
-					  canMove = false;
-				  } else if((tempMoveType == 4 && p1TempPrevMoveType == 3)) { //Move Down If current is up --> not change!
-					  canMove = false;
-				  }
-
-				  if(tempMoveType == 0) {
-					  tempMoveType = p1TempPrevMoveType;
-				  }
-
-				  if(p1TempPrevMoveType != tempMoveType && canMove && HAL_GetTick() - currentP1MoveDelay >= playerMoveDelay && gameState != 3) {
-					  moveP1AutoMove(tempMoveType,false);
-					  currentP1MoveDelay = HAL_GetTick();
-					  lastP1MoveTime =  HAL_GetTick();
-					  ILI9341_Draw_Rectangle(10*p1X[0], 10*p1Y[0], 10, 10, p1Color);
-					  p1TempPrevMoveType = tempMoveType;
-				  }
-
-				  if(playerAmount == 2) {
-					  uint8_t tempP2MoveType = p2MoveControlType;
-					  bool canP2Move = true;
-					  if((tempP2MoveType == 2 && p2TempPrevMoveType == 1)) { //Move Right If current is left --> not change!
-						  canP2Move = false;
-					  } else if((tempP2MoveType == 1 && p2TempPrevMoveType == 2)) { //Move Left If current is right --> not change!
-						  canP2Move = false;
-					  } else if((tempP2MoveType == 3 && p2TempPrevMoveType == 4)) { //Move Up If current is down --> not change!
-						  canP2Move = false;
-					  } else if((tempP2MoveType == 4 && p2TempPrevMoveType == 3)) { //Move Down If current is up --> not change!
-						  canP2Move = false;
-					  }
-
-					  if(tempP2MoveType == 0) {
-						  tempP2MoveType = p2TempPrevMoveType;
-					  }
-
-					  if(p2TempPrevMoveType != tempP2MoveType && canP2Move &&  HAL_GetTick() - currentP2MoveDelay >= playerMoveDelay && gameState != 3) {
-						  moveP2AutoMove(tempP2MoveType,false);
-						  lastP2MoveTime =  HAL_GetTick();
-						  currentP2MoveDelay = HAL_GetTick();
-						  ILI9341_Draw_Rectangle(10*p2X[0], 10*p2Y[0], 10, 10, p2Color);
-						  p2TempPrevMoveType = tempP2MoveType;
-					  }
-				  }
-			  }
-		  }
-
-	  }
 
 	  if(gameState == 0) {
 		  if(!isDrawBorderMain) {
@@ -1343,6 +1341,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 			}
 		}
 	}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* h) {
+	if(h == &hadc1) {
+		  scaledValueX = VR[0];
+		  scaledValueY = VR[1];
+		  scaledValueXP2 = VR[2];
+		  scaledValueYP2 = VR[3];
+	}
+}
 /* USER CODE END 4 */
 
 /**
